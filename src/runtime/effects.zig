@@ -915,10 +915,17 @@ pub const max_effect_channel_pending: usize = 32;
 
 /// In-flight ptys (interactive terminal sessions) per Effects channel —
 /// their own table beside the channel table: a pty is a long-lived keyed
-/// occupancy like a channel, not a run-to-completion worker slot. One
-/// live terminal surface plus a background job or two is the realistic
-/// shape; a fifth spawn is refused loudly (reason `.rejected`).
-pub const max_effect_ptys: usize = 4;
+/// occupancy like a channel, not a run-to-completion worker slot. This
+/// is a transport limit, not a claim about how many terminals an app
+/// should show: it must not sit below the count of live terminal
+/// surfaces the app can mount, or that surface count is silently
+/// unreachable — the refusal lands in the effects layer, far from the
+/// widget that asked. A spawn past the cap is refused loudly (reason
+/// `.rejected`). Each slot is inline and small (~7.6 KiB: write capture,
+/// argv, cwd, term); the large per-pty buffers are heap-allocated on
+/// spawn and freed on exit, so raising this costs table bytes, not
+/// per-terminal memory.
+pub const max_effect_ptys: usize = 64;
 /// Longest one delivered pty output record: one Msg payload, one
 /// journal blob. Output arriving between drains coalesces into batches
 /// of at most this size — `cat largefile` journals per-drain batches,
